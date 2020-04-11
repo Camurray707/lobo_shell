@@ -10,8 +10,8 @@
 #include "parsetools.h"
 
 
-int main() {
-
+int main()
+{
     // Buffer for reading one line of input
     char line[MAX_LINE_CHARS];
     // holds separated words based on whitespace
