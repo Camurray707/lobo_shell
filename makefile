@@ -26,7 +26,7 @@ pipe_demo.o: example/pipe_demo.c
 
 clean:
 	rm -f *.x *.o *~
-	rm -f tests/output/*
+	rm -rf tests/output
 
 check: lobo_shell.x
 	mkdir -p tests/output
