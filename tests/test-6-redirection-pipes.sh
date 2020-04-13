@@ -17,3 +17,4 @@ fi
 rm -f tests/output/tmp tests/output/etmp
 
 diff $OUT $EOUT && echo "PASSED $0" || echo "TEST FAILED $0"
+

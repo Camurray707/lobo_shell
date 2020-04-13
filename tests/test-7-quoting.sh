@@ -15,3 +15,4 @@ if [ -f tests/output/shouldnt-exist ]; then
 fi
 
 diff $OUT $EOUT && echo "PASSED $0" || echo "TEST FAILED $0"
+

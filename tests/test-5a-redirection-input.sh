@@ -9,3 +9,4 @@ EOF
 wc -l < /usr/share/dict/words > $EOUT
 
 diff $OUT $EOUT && echo "PASSED $0" || echo "TEST FAILED $0"
+

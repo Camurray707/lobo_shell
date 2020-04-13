@@ -9,3 +9,4 @@ EOF
 ls /usr/bin | head -10 > $EOUT
 
 diff $OUT $EOUT && echo "PASSED $0" || echo "TEST FAILED $0"
+

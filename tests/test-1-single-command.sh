@@ -9,3 +9,4 @@ EOF
 whoami > $EOUT
 
 diff $OUT $EOUT && echo "PASSED $0" || echo "TEST FAILED $0"
+

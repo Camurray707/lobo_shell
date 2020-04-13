@@ -18,3 +18,4 @@ if [ "$BYTES" == 0 ]; then
 else
     echo "TEST DETECTED MEMORY LEAKS $0"
 fi
+
