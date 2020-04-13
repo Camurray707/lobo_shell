@@ -13,7 +13,7 @@ whoami
 EOF
 
 BYTES=`cat $OUT | grep "definitely lost" | tr -s ' ' | cut --delimiter=' ' -f4`
-if [ $BYTES == 0 ]; then
+if [ "$BYTES" == 0 ]; then
     echo "TEST PASSED $0"
 else
     echo "TEST DETECTED MEMORY LEAKS $0"
