@@ -18,11 +18,11 @@ if [ ! -f tests/output/tmp ] || [ ! -s tests/output/tmp ]; then
     exit 1
 fi
 
-if [ -z $(find tests/output/etmp -perm 664) ]; then
+if [ -z $(find tests/output/tmp -perm 664) ]; then
     echo "TEST FAILED $0"
     exit 2
 fi
-rm -f tests/output/tmp tests/output/etmpp
+rm -f tests/output/tmp tests/output/etmp
 
 diff $OUT $EOUT && echo "PASSED $0" || echo "TEST FAILED $0"
 
