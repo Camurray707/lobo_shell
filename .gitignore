@@ -1,3 +1,7 @@
+#project-specifc ignores
+tests/output
+*.x
+
 # Prerequisites
 *.d
 
