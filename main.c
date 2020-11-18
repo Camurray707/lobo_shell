@@ -9,6 +9,8 @@
 #include "constants.h"
 #include "parsetools.h"
 
+void exec(struct executeData *ParseCmd,int numOfCmds);
+void syserror(const char *);
 
 int main()
 {
@@ -20,7 +22,9 @@ int main()
     // Loop until user hits Ctrl-D (end of input)
     // or some other input error occurs
     while( fgets(line, MAX_LINE_CHARS, stdin) ) {
-        int num_words = split_cmd_line(line, line_words);
+        int num_words = split_cmd_line(line, line_words); //probably splits the command line for pipes
+
+        struct executeData;
 
         for (int i=0; i < num_words; i++) {
             printf("%s\n", line_words[i]);
@@ -30,4 +34,30 @@ int main()
     return 0;
 }
 
+//execute command lines
+void exec(struct executeData *ParseCmd,int numOfCmds){
+    pid_t pid;
 
+    //one input
+    if(numOfCmds == 1){
+        pid =fork();
+        if(pid == -1){
+            //error message
+        }
+        if(pid == 0){
+
+        }
+    }
+
+}
+
+
+
+//check errors for function calls, got from pipe_demo
+void syserror(const char *s)
+{
+    extern int errno;
+    fprintf(stderr, "%s\n", s);
+    fprintf(stderr, " (%s)\n", strerror(errno));
+    exit(1);
+}
