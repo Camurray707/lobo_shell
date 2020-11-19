@@ -10,7 +10,8 @@
 //
 int split_cmd_line(char* line, char** list_to_populate);
 int split_line_pipes(char* line, char** list_to_populate);
-void exec(struct executeData *ParseCmd,int numOfCmds);
-void Parse(struct executeData *ParseCmd,int numOfCmds);
+void exec(struct executeData *parseCmd,int numOfCmds);
+void Parse(char ** cmds,struct executeData *parseCmd,int numOfCmds);
+char* removeSpaces(char* str);
 
 #endif
