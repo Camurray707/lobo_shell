@@ -8,4 +8,9 @@
 #define OUTPUT_REDIRECT '>'
 #define PIPE '|'
 
+struct executeData{
+    char * cmdWrds[MAX_LINE_WORDS+1];
+
+};
+
 #endif
