@@ -10,7 +10,9 @@
 
 struct executeData{
     char * cmdWrds[MAX_LINE_WORDS+1];
-
+    int in, out;
+    char* out_File[MAX_LINE_CHARS];
+    char* in_File[MAX_LINE_CHARS];
 };
 
 #endif
