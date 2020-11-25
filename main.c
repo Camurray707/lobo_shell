@@ -22,6 +22,7 @@ int main()
     // Loop until user hits Ctrl-D (end of input)
     // or some other input error occurs
     while( fgets(line, MAX_LINE_CHARS, stdin) ) {
+
         int num_words = split_cmd_line(line, line_words); //probably splits the command line for pipes
 
         //int numOfCmds =split_cmd_line(line,line_words); //split command line
@@ -32,9 +33,9 @@ int main()
 
         exec(parseCmd,num_words);
 
-        for (int i=0; i < num_words; i++) {
-            printf("%s\n", line_words[i]);
-        }
+//        for (int i=0; i < num_words; i++) {
+//            printf("%s\n", line_words[i]);
+//        }
     }
 
     return 0;

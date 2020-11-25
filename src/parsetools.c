@@ -67,6 +67,8 @@ void Parse(char ** cmds,struct executeData *parseCmd, int numOfCmds){
             parseCmd[i].cmdWrds[j] = (char *)malloc(MAX_LINE_WORDS * sizeof(char));
         }
 
+        parseCmd[i].in =0;
+        parseCmd[i].out =0;
 
         //need to recognize and remove spaces
         cmds[i] = removeSpaces(cmds[i]);
@@ -76,7 +78,7 @@ void Parse(char ** cmds,struct executeData *parseCmd, int numOfCmds){
         for(int j =0; j < totalCmdSize; j++){
             //compare strings, the strcmp will compare both strings and if both are identical then it will return 0.
             //Will return a + or - number depending if what string is greater or less than the other
-            if(strcmp(parseCmd[i].cmdWrds[j],">")){
+            if(!strcmp(parseCmd[i].cmdWrds[j],">")){
                 //will be used as a condition in the exec in main.
                 parseCmd[i].out =1;
 
@@ -98,5 +100,4 @@ void Parse(char ** cmds,struct executeData *parseCmd, int numOfCmds){
 
 
 //function to remove quotes
-
 

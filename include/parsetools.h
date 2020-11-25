@@ -14,4 +14,5 @@ void exec(struct executeData *parseCmd,int numOfCmds);
 void Parse(char ** cmds,struct executeData *parseCmd,int numOfCmds);
 char* removeSpaces(char* str);
 
+
 #endif
