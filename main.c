@@ -78,7 +78,7 @@ void exec(struct executeData *parseCmd,int numOfCmds){
             case 0:
                 dup2(fds[i][0],1);
                 if (close(fds[0]) == -1 || close(fds[1]) == -1)
-                    syserror( "Could not close pfds from first child" );
+                    syserror( "Could not close fds from first child" );
 
                 execlp(parseCmd[0].cmdWrds[0], parseCmd[0].cmdWrds);
                 //syserror("Could not exec the command");
