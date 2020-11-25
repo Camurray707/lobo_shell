@@ -23,7 +23,7 @@ int main()
     // or some other input error occurs
     while( fgets(line, MAX_LINE_CHARS, stdin) ) {
 
-        int num_words = split_cmd_line(line, line_words); //probably splits the command line for pipes
+        int num_words = split_line_pipes(line, line_words); //probably splits the command line for pipes
 
         //int numOfCmds =split_cmd_line(line,line_words); //split command line
 
@@ -65,7 +65,7 @@ void exec(struct executeData *parseCmd,int numOfCmds){
                 }
 
             }
-            execlp(parseCmd[0].cmdWrds[0], parseCmd[0].cmdWrds);
+            execvp(parseCmd[0].cmdWrds[0], parseCmd[0].cmdWrds);
             //syserror("Could not exec the command");
 
         }
@@ -79,7 +79,7 @@ void exec(struct executeData *parseCmd,int numOfCmds){
             case 0:
                 dup2(fds[i][0],1);
                 if (close(fds[0]) == -1 || close(fds[1]) == -1)
-                    syserror( "Could not close fds from first child" );
+                    //syserror( "Could not close fds from first child" );
 
                 execlp(parseCmd[0].cmdWrds[0], parseCmd[0].cmdWrds);
                 //syserror("Could not exec the command");
