@@ -8,13 +8,15 @@ int main()
     char line[MAX_LINE_CHARS];
     // holds separated words based on whitespace
     char* line_words[MAX_LINE_WORDS + 1];
-    
+
     // Loop until user hits Ctrl-D (end of input)
     // or some other input error occurs
     while( fgets(line, MAX_LINE_CHARS, stdin) ) {
         if(line[0] == EOF)//exit if ctrl-d is entered
             break;
-        
+
+        removeQuotes(line);
+
         int numOfCmds = split_line_pipes(line, line_words); //probably splits the command line for pipes
         struct executeData parseCmd[numOfCmds]; //store command from parse
 
@@ -23,4 +25,3 @@ int main()
     }
     return 0;
 }
-
