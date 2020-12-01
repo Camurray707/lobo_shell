@@ -24,5 +24,6 @@ int main()
 
         execPipe(parseCmd, numOfCmds);
     }
+
     return 0;
 }

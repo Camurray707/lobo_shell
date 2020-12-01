@@ -162,59 +162,6 @@ void Parse(char** cmds,struct executeData *parseCmd, int numOfCmds) {
         }
     }
 }
-/*
-//execute command lines arguments
-void exec(struct executeData *parseCmd,int numOfCmds) {
-    int fds[numOfCmds - 1][2];
-    pid_t pid;
-
-    //one input
-    if(numOfCmds == 1){
-        pid =fork();
-        if(pid == -1){
-            syserror("Not able to create a fork");
-        }
-        else if(pid == 0){
-            if(parseCmd[0].out || parseCmd[0].in){
-                if(parseCmd[0].out== 1){
-                    fds[0][1] = open(parseCmd[0].out_File, O_WRONLY | O_CREAT | O_TRUNC, 0700);//0700 is for read, write, and execute permission
-                    if(fds[0][1] < 0){
-                        syserror("could not open the output file");
-                    }
-                    dup2(fds[0][1], 1);
-                }
-                else if(parseCmd[0].out == 2){
-                    fds[0][1] = open(parseCmd[0].out_File, O_WRONLY | O_CREAT |  O_APPEND, 0700);
-                    if(fds[0][1] < 0){
-                        syserror("could not open the output file");
-                    }
-                    dup2(fds[0][1], 1);
-                }
-                if(parseCmd[0].in == 3){
-                    fds[0][0] = open(parseCmd[0].in_File, O_RDONLY, 0400);//0400 is for read permission only
-                    if(fds[0][0] < 0){
-                        syserror("could not open the input file");
-                    }
-                    dup2(fds[0][0], 0);
-                }
-                printf("here\n");
-                if (close(fds[0][0]) == -1 || close(fds[0][1]) == -1)
-                    syserror( "Could not close fds from here" );
-            }
-            execvp(parseCmd[0].cmdWrds[0], parseCmd[0].cmdWrds);
-            exit(0);
-        }
-        else{
-            if (close(fds[0][0]) == -1 || close(fds[0][1]) == -1)
-                syserror( "Could not close pfds from here" );
-            pid = wait(NULL);
-        }
-    }
-    else{
-        execPipe(parseCmd, numOfCmds);
-    }
-}
-*/
 //executes piped commands
 void execPipe(struct executeData *parseCmd,int numOfCmds) {
     int fds[numOfCmds - 1][2];
@@ -234,8 +181,7 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
         if (pid == 0) {
             if (parseCmd[0].out || parseCmd[0].in) {
                 if (parseCmd[0].out == 1) {
-                    fds[0][1] = open(parseCmd[0].out_File, O_WRONLY | O_CREAT | O_TRUNC,
-                                     0700);//0700 is for read, write, and execute permission
+                    fds[0][1] = open(parseCmd[0].out_File, O_WRONLY | O_CREAT | O_TRUNC,0700);//0700 is for read, write, and execute permission
                     if (fds[0][1] < 0) {
                         syserror("could not open the output file");
                     }
@@ -266,6 +212,9 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
             while (wait(NULL) != -1);
         }
     }
+    else if(numOfCmds >= 3){
+        execPipe2(parseCmd, numOfCmds);
+    }
     else{
     //then exec them
     for (int i = 0; i < numOfCmds; i++) {
@@ -282,7 +231,7 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
                     if (parseCmd[i].in) {//checking for input redirection
                         fds[i][0] = open(parseCmd[0].in_File, O_RDONLY, 0400);//0400 is for read permission only
                         if (fds[i][0] < 0) {
-                            syserror("could not open the input file!!");
+                            syserror("could not open the input file");
                         }
                         dup2(fds[i][0], 0);
                     }
@@ -385,3 +334,93 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
     }
 }
 
+//execs 2 piped commands
+void execPipe2(struct executeData *parseCmd,int numOfCmds) {
+    int fds[numOfCmds - 1][2];
+    pid_t pid;
+
+    //first make all the needed pipes
+    for (int i = 0; i < numOfCmds - 1; i++) {
+        if (pipe(fds[i]) == -1)
+            syserror("Could not create a pipe");
+    }
+
+    //then exec them
+
+    switch (pid = fork()) {
+        case -1:
+            syserror("Second fork failed");
+            break;
+        case 0:
+            if (close(0) == -1)
+                syserror("Could not close stdin for pipe 2");
+            dup2(fds[1][0], 0);
+            if (close(fds[0][0]) == -1 || close(fds[0][1]) == -1 || close(fds[1][0]) == -1 || close(fds[1][1]) == -1 )
+                syserror("Could not close fds[i]s from first child");
+            execvp(parseCmd[2].cmdWrds[0], parseCmd[2].cmdWrds);
+            syserror("Could not exec ");
+            break;
+        default:
+            //fprintf(stderr, "The second child's pid is: %d\n", pid);
+            break;
+    }
+
+
+    switch (pid = fork()) {
+        case -1:
+            syserror("First fork failed");
+            break;
+        case 0:
+            dup2(fds[0][0],0);
+            if (close(1) == -1)
+                syserror("Could not close stdout for pipe 2");
+            dup2(fds[1][1],1);
+            if(parseCmd[0].in){//checking for input redirection
+                fds[0][0] = open(parseCmd[0].in_File, O_RDONLY, 0400);//0400 is for read permission only
+                if(fds[0][0] < 0){
+                    syserror("could not open the input file");
+                }
+                dup2(fds[0][0], 0);
+            }
+            if (close(fds[0][0]) == -1 || close(fds[0][1]) == -1 || close(fds[1][0]) == -1 || close(fds[1][1]) == -1 )
+                syserror("Could not close fds[i]s from first child");
+            execvp(parseCmd[1].cmdWrds[0], parseCmd[1].cmdWrds);
+            syserror("Could not exec ");
+            break;
+        default:
+            //fprintf(stderr, "The first child's pid is: %d\n", pid);
+            break;
+    }
+
+    switch (pid = fork()) {
+        case -1:
+            syserror("Second fork failed");
+            break;
+        case 0:
+            if (close(1) == -1)
+                syserror("Could not close stdout");
+            dup2(fds[0][1], 1);
+            if (close(fds[0][0]) == -1 || close(fds[0][1]) == -1 || close(fds[1][0]) == -1 || close(fds[1][1]))
+                syserror("Could not close fds[i]s from first child");
+            execvp(parseCmd[0].cmdWrds[0], parseCmd[0].cmdWrds);
+            syserror("Could not exec ");
+            break;
+        default:
+            //fprintf(stderr, "The second child's pid is: %d\n", pid);
+            break;
+    }
+
+    if (close(fds[0][0]) == -1) {
+        syserror("Parent could not close stdin");
+    }
+    if (close(fds[0][1]) == -1) {
+        syserror("Parent could not close stdout");
+    }
+    if (close(fds[1][0]) == -1) {
+        syserror("Parent could not close stdin");
+    }
+    if (close(fds[1][1]) == -1) {
+        syserror("Parent could not close stdout");
+    }
+    while (wait(NULL) != -1);
+}
