@@ -14,6 +14,7 @@ void Parse(char** cmds,struct executeData *parseCmd,int numOfCmds);
 char* removeSpaces(char* str);
 void exec(struct executeData *parseCmd,int numOfCmds);
 void execPipe(struct executeData *parseCmd,int numOfCmds);
+void execPipe2(struct executeData *parseCmd,int numOfCmds);
 void removeQuotes(char * line);
 void syserror(const char *);
 

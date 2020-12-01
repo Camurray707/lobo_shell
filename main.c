@@ -21,7 +21,9 @@ int main()
         struct executeData parseCmd[numOfCmds]; //store command from parse
 
         Parse(line_words,parseCmd,numOfCmds); //parse commands pass to exec
-        exec(parseCmd, numOfCmds);
+
+        execPipe(parseCmd, numOfCmds);
     }
+
     return 0;
 }
