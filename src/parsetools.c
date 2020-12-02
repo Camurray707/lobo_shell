@@ -203,7 +203,7 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
         }
     }
     else if(numOfCmds >= 3){
-        execPipe2(parseCmd, numOfCmds);
+        execMultiblePipes(parseCmd, numOfCmds);
     }
     else{
     //first make all the needed pipes
@@ -225,11 +225,11 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
                 case 0:
                     dup2(fds[i][1], 1);
                     if (parseCmd[i].in) {//checking for input redirection
-                        fds[i][0] = open(parseCmd[0].in_File, O_RDONLY, 0400);//0400 is for read permission only
-                        if (fds[i][0] < 0) {
+                        int fd = open(parseCmd[0].in_File, O_RDONLY, 0400);//0400 is for read permission only
+                        if (fd < 0) {
                             syserror("could not open the input file");
                         }
-                        dup2(fds[i][0], 0);
+                        dup2(fd, 0);
                     }
 
                     if (close(fds[i][0]) == -1 || close(fds[i][1]) == -1)
@@ -259,18 +259,19 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
                     dup2(fds[i-1][0], 0);//here we are getting input from pipe
 
                     if (parseCmd[i].out) {
+                        int fd;
                         if (parseCmd[i].out == 1) {
-                            fds[i][1] = open(parseCmd[i].out_File, O_WRONLY | O_CREAT | O_TRUNC, 0777);
-                            if (fds[i][1] < 0) {
+                            fd = open(parseCmd[i].out_File, O_WRONLY | O_CREAT | O_TRUNC, 0664);
+                            if (fd < 0) {
                                 syserror("could not open the output file");
                             }
                         } else if (parseCmd[i].out == 2) {
-                            fds[i][1] = open(parseCmd[i].out_File, O_WRONLY | O_APPEND, 0777);
-                            if (fds[i][1] < 0) {
+                            fd = open(parseCmd[i].out_File, O_WRONLY | O_APPEND, 0664);
+                            if (fd < 0) {
                                 syserror("could not open the output file");
                             }
                         }
-                        dup2(fds[i][1], 1);
+                        dup2(fd, 1);
                         if (close(fds[i][0]) == -1 || close(fds[i][1]) == -1)
                             syserror("Could not close pfds from last child for pfd[i][0] or 1");
                     }
@@ -390,3 +391,105 @@ void execPipe2(struct executeData *parseCmd,int numOfCmds) {
     }
     while (wait(NULL) != -1);
 }
+
+
+
+
+void execMultiblePipes(struct executeData *parseCmd,int numOfCmds) {
+    int fds[numOfCmds - 1][2];
+    pid_t pid;
+
+    //then exec them
+    int i = 0;
+    while(i < numOfCmds){
+    if(i == numOfCmds - 1){    //last command
+        switch (pid = fork()) {
+            case -1:
+                syserror("Last fork failed");
+                break;
+            case 0:
+                if (close(0) == -1)
+                    syserror("Could not close stdin for final pipe");
+                dup2(fds[i-1][0], 0);
+                if (close(fds[i-1][0]) == -1 || close(fds[i-1][1]) == -1)
+                    syserror("Could not close fds[i]s from first child");
+                execvp(parseCmd[i].cmdWrds[0], parseCmd[i].cmdWrds);
+                syserror("Could not exec ");
+                break;
+            default:
+                //fprintf(stderr, "The second child's pid is: %d\n", pid);
+                if (close(fds[i-1][0]) == -1) {
+                    syserror("Parent could not close stdin");
+                }
+                if (close(fds[i-1][1]) == -1) {
+                    syserror("Parent could not close stdout");
+                }
+                while (wait(NULL) != -1);
+                break;
+        }//switch     
+
+   }
+    else if(i == 0){   //first command
+        if (pipe(fds[i]) == -1)
+            syserror("Could not create a pipe");
+        switch (pid = fork()) {
+            case -1:
+                syserror("Second fork failed");
+                break;
+            case 0:
+                if (close(1) == -1)
+                    syserror("Could not close stdout for first pipe");
+                dup2(fds[i][1], 1);
+                if (close(fds[i][0]) == -1 || close(fds[i][1]) == -1)
+                    syserror("Could not close fds[i]s from first child");
+                execvp(parseCmd[i].cmdWrds[0], parseCmd[i].cmdWrds);
+                syserror("Could not exec ");
+                break;
+            default:
+                //fprintf(stderr, "The second child's pid is: %d\n", pid);
+                break;
+            }//switch
+        }
+        else{
+            if (pipe(fds[i]) == -1)
+                syserror("Could not create a pipe");
+                
+                switch(pid = fork()){
+            case -1:
+                syserror("Middle fork failed");
+                break;
+            case 0:
+                //stdin
+                fflush(stdout);
+                if(close(0) == -1)
+                    syserror("Can't close middle forks stdin");
+                dup2(fds[i-1][0], 0);//input from old pipe
+                if (close(fds[i-1][0]) == -1 || close(fds[i-1][1]) == -1)
+                        syserror("Could not close fds[i]s from first child");
+
+                //stdout
+                if(close(1) == -1)
+                    syserror("Can't close middle forks stdout");
+                dup2(fds[i][1], 1);//output to new pipe
+                if (close(fds[i][0]) == -1 || close(fds[i][1]) == -1)
+                        syserror("Could not close fds[cmdNbr]s from middle child");
+
+                //exec
+                execvp(parseCmd[i].cmdWrds[0], parseCmd[i].cmdWrds);
+                syserror("Could not exec ");
+                break;
+                default:
+                    //fprintf(stderr, "The middle child's pid is: %d\n", pid);
+                        break;
+            }
+            
+            if (close(fds[i-1][0]) == -1) {
+                syserror("Parent could not close stdin");
+            }
+            if (close(fds[i-1][1]) == -1) {
+                syserror("Parent could not close stdout");
+            }
+        }
+        i++;
+        }//end of loop   
+    }
