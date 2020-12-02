@@ -167,12 +167,6 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
     int fds[numOfCmds - 1][2];
     pid_t pid;
 
-    //first make all the needed pipes
-    for (int i = 0; i < numOfCmds; i++) {
-        if (pipe(fds[i]) == -1)
-            syserror("Could not create a pipe");
-    }
-
     if (numOfCmds == 1) {
         pid = fork();
         if (pid == -1) {
@@ -181,34 +175,30 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
         if (pid == 0) {
             if (parseCmd[0].out || parseCmd[0].in) {
                 if (parseCmd[0].out == 1) {
-                    fds[0][1] = open(parseCmd[0].out_File, O_WRONLY | O_CREAT | O_TRUNC,0700);//0700 is for read, write, and execute permission
-                    if (fds[0][1] < 0) {
+                    int fd = open(parseCmd[0].out_File, O_WRONLY | O_CREAT | O_TRUNC,0664);//0700 is for read, write, and execute permission
+                    if (fd < 0) {
                         syserror("could not open the output file");
                     }
-                    dup2(fds[0][1], 1);
+                    dup2(fd, 1);
                 } else if (parseCmd[0].out == 2) {
-                    fds[0][1] = open(parseCmd[0].out_File, O_WRONLY | O_CREAT | O_APPEND, 0700);
-                    if (fds[0][1] < 0) {
+                    int fd = open(parseCmd[0].out_File, O_WRONLY | O_CREAT | O_APPEND, 0664);
+                    if (fd < 0) {
                         syserror("could not open the output file");
                     }
-                    dup2(fds[0][1], 1);
+                    dup2(fd, 1);
                 }
                 if(parseCmd[0].in == 1){
-                    fds[0][0] = open(parseCmd[0].in_File, O_RDONLY, 0400);//0400 is for read permission only
-                    if(fds[0][0] < 0){
+                    int fd = open(parseCmd[0].in_File, O_RDONLY, 0400);//0400 is for read permission only
+                    if(fd < 0){
                         syserror("could not open the input file");
                     }
-                    dup2(fds[0][0], 0);
+                    dup2(fd, 0);
                 }
                 printf("no\n");
-                if (close(fds[0][0]) == -1 || close(fds[0][1]) == -1)
-                    syserror( "Could not close pfds from here" );
             }
             execvp(parseCmd[0].cmdWrds[0], parseCmd[0].cmdWrds);
             syserror("Could not exec the command");
         } else {
-            if (close(fds[0][0]) == -1 || close(fds[0][1]) == -1)
-                syserror("Could not close fds from here");
             while (wait(NULL) != -1);
         }
     }
@@ -216,6 +206,12 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
         execPipe2(parseCmd, numOfCmds);
     }
     else{
+    //first make all the needed pipes
+    for (int i = 0; i < numOfCmds; i++) {
+        if (pipe(fds[i]) == -1)
+            syserror("Could not create a pipe");
+    }
+
     //then exec them
     for (int i = 0; i < numOfCmds; i++) {
         if (i == 0) {
@@ -288,36 +284,6 @@ void execPipe(struct executeData *parseCmd,int numOfCmds) {
                     break;
             }
         }
-        else {
-
-            switch (pid = fork()) {
-                case -1:
-                    syserror("Middle fork failed");
-                    break;
-                case 0:
-                    /*
-                    if (close(1) == -1)
-                        syserror("Could not close stdout");
-                    dup(fds[i][1]);
-                     */
-                    dup2(fds[i-1][0], 0);
-                    dup2(fds[i][1], 1);
-                    if (close(fds[i-1][0]) == -1 || close(fds[i-1][1]) == -1)
-                        syserror("Could not close pfds from i-1  middle child");
-
-                    if (close(fds[i][0]) == -1 || close(fds[i][1]) == -1)
-                        syserror("Could not close fds[i]s from middle child");
-
-                    execvp(parseCmd[i].cmdWrds[0], parseCmd[i].cmdWrds);
-                    syserror("Could not exec ");
-                    break;
-                default:
-                    //fprintf(stderr, "The second child's pid is: %d\n", pid);
-                    break;
-
-            }
-        }
-
 
         //finally reap children
         if (i > 0) {
