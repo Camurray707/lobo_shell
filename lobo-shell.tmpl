@@ -10,9 +10,9 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Luke T. Shoulders  <lukesh@sonic.net>
+Austin Escalante <escalant@sonoma.edu>
+Christopher Murray <murraych@sonoma.edu>
 
 ---- PRELIMINARIES ----
 
@@ -32,31 +32,72 @@ FirstName LastName <email@domain.example>
 >> A1: Copy here the declaration of each new `struct',
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
+//executeData struct will hold info to execute command
+struct executeData{
+    char *cmdWrds[MAX_LINE_WORDS+1];
+    int in, out;
+    char *out_File[MAX_LINE_CHARS];
+    char *in_File[MAX_LINE_CHARS];
+}
+
 
 
 ---- ALGORITHMS ----
 
 >> A2: Unix pipes allow synchronization among processes to facilitate
->> interprocess communication (IPC). Consider a pipeline of arbitrary 
+>> interprocess communication (IPC). Consider a pipeline of arbitrary
 >> length, like:
 >>     P[0] | P[1] | ... | P[i-1] | P[i] | P[i+1] | ... | P[n]
 >> Imagine a loop, like:
->>     for i in 0 .. n: 
+>>     for i in 0 .. n:
 >>         set-up-pipeline-for( process P[i] )
->> What prior-created pipes would be used with process P[i]? 
->> What new pipes need to be created to set up P[i]'s pipeline? 
-
+>> What prior-created pipes would be used with process P[i]?
+    P[i-1] is created to write to P[i].
+>> What new pipes need to be created to set up P[i]'s pipeline?
+    P[i+1]  read side needs to be created to accept from P[i] write end.
 >> A3: Copy here the prototypes for any functions you have introduced.
 >> Identify the purpose of each in 50 words or less.
+//Parse a command line into a list of words,
+//separated by whitespace
+//returns the number of words
+int split_cmd_line(char* line, char** list_to_populate);
+
+//same as split_cmd_line but delimiter is set to ‘|’
+int split_line_pipes(char* line, char** list_to_populate);
+
+//logical handler for parsing commands
+void Parse(char** cmds,struct executeData *parseCmd,int numOfCmds);
+
+//removes leading and trailing whitespace
+char* removeSpaces(char* str);
+
+//logical handler for executing commands and pipe operations
+void exec(struct executeData *parseCmd,int numOfCmds);
+
+//executes single pipe commands
+void execPipe(struct executeData *parseCmd,int numOfCmds);
+
+//executes multiple pipe commands
+void execPipe2(struct executeData *parseCmd,int numOfCmds);
+
+//remove quotes from command input
+void removeQuotes(char * line);
+
+//check errors for function calls
+void syserror(const char *);
+
 
 >> A4: Briefly describe how the functions (from A3) are called
 >> when your shell is processing the user-entered commands:
 >>   foo | bar
+The command will be passed to the split_line_pipes function where the delimiter will looking for the symbol | for pipe. The result will be stored in an integer and its info passed to a struct. From there the split up command, the struct info and total number of commands will be passed to the Parse function.
 
->> A5: Briefly describe your approch for reaping child processes. When do 
+>> A5: Briefly describe your approach for reaping child processes. When do
 >> you reap, and how much do you reap at a time? Would it be possible to
->> reap children earlier than your current implementation and, if so, 
+>> reap children earlier than your current implementation and, if so,
 >> what situations might that benefit?
+
+The children are reaped if the parent cannot close stdin and this is seen when the file descriptor has been set to a negative value. Reaping happens once a file descriptor has seen that the parents exist first and calls wait which is in a while loop.
 
 
 ---- SYNCHRONIZATION ----
@@ -65,32 +106,63 @@ FirstName LastName <email@domain.example>
 >> synchronization primitives (locks, semaphores)? Is the bash shell
 >> (http://git.savannah.gnu.org/cgit/bash.git/) multithreaded?
 >> What did you grep to determine the answer?
+Yes this is seen with the wait commands and pipes. Processes are paused and started, stalling the flow of completion of most processes until completion. In addition, allow for a program to supply output to the input of another.
+ps -e | grep processName | wc -l. 
 
 
 ---- RATIONALE ----
 
->> A7: To open() a file for I/O re-direction requires file creation 
->> flags and file permission modes be set. 
+>> A7: To open() a file for I/O re-direction requires file creation
+>> flags and file permission modes be set.
 >> List and explain the flag and status used in open(bar,...)
 >> for each of these situations:
 >>   (i) foo > bar
+    open(bar, 0_CREAT | 0_APPEND | 0_WRONLY, 0700)
+The  open() system call opens a specified file, and the 0_CREAT  flag creates a regular file.  0_APPEND has the file offset positioned to the end of the file before write is called.0_WRONLY flags that the file is in write only mode. 0700 is the permission for read, write and execute
 >>  (ii) foo < bar
+    open(bar, 0_RDONLY, 0400)
+The open system call opens a specified file in read only permission with the permission mode 0400 that allows the owner to read.
 >> (iii) foo >> bar
->> Explain why you selected this default behavior, and compare it 
+    open(bar, 0_WRONLY | 0_APPEND,0777)
+The  open() system call opens a specified file. The file has the 0_WRONLY flag that is in write only mode.0_APPEND has the file offset positioned to the end of the file before write is called.
+The permission mode is set to 0777 to allow write to the file.
+
+>> Explain why you selected this default behavior, and compare it
 >> to some existing shell you have used.
 
+This default behavior works with the examples given. The permissions are set appropriately and the flags are set for the expected operation. The permissions mode was set differently based on the umask 002 command in the tests.
+
 >> A8: How does your implementation function in each of these scenarios:
->>   (i) foo < bar, when "bar" does not exist? 
->>  (ii) foo > bar, when "bar" does not exist? 
+>>   (i) foo < bar, when "bar" does not exist?
+    Won’t be able to read, gives an non-exist error.
+>>  (ii) foo > bar, when "bar" does not exist?
+bar gets created by the 0_CREAT flag.
 >> (iii) foo < bar, when "bar" exists but you lack permission to read it?
+    Throw a permissions error
 >>  (iv) foo > bar, when "bar" exists but you lack permission to write it?
+Throw a permissions error
 >>   (v) foo > bar, when "bar" cannot be created?
+    Redirection error for input
 >> In each case, explain your design decision.
 
->> A9: Develop a new test, not covered by existing tests. Provide the 
->> code implementing that test. When possible, follow the format of 
->> existing tests. Explain what functionality it tests and how it goes 
+
+>> A9: Develop a new test, not covered by existing tests. Provide the
+>> code implementing that test. When possible, follow the format of
+>> existing tests. Explain what functionality it tests and how it goes
 >> beyond the provided tests.
+//strace outputs to stderr rather than stdout so this tests for possible implementation of 2>&1
+OUT=tests/output/`basename ${0%.sh}`.out
+EOUT=tests/output/`basename ${0%.sh}`.eout
+rm -f $OUT $EOUT tests/output/tmp tests/output/etmp
+
+./lobo_shell.x > $OUT << 'EOF'
+strace whoami 2>&1 | grep execve
+EOF
+
+strace whoami 2>&1 | grep execve > $EOUT
+
+diff $OUT $EOUT && echo "PASSED $0" || echo "TEST FAILED $0"
+
 
 
 
@@ -115,3 +187,5 @@ the quarter.
 >> find any of our guidance to be misleading?
 
 >> Any other comments?
+
+
